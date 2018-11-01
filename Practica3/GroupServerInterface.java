@@ -35,10 +35,6 @@ public interface GroupServerInterface extends Remote {
 
     LinkedList<String> ListMembers(String galias) throws RemoteException;
 
-    LinkedList<String> ListGroup() throws RemoteException;
-    
-    LinkedList<ObjectGroup> showGroups() throws RemoteException;
-
-    String showMembers() throws RemoteException;
+    LinkedList<ObjectGroup> ListGroups() throws RemoteException;
     
 }

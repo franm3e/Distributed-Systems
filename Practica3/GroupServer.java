@@ -21,7 +21,7 @@ public class GroupServer extends UnicastRemoteObject implements GroupServerInter
 {
     LinkedList<ObjectGroup> groupList;
     ReentrantLock lock;
-    int groupID = 0;
+    int groupId = 0;
     
     public GroupServer() throws RemoteException 
     {
@@ -30,8 +30,8 @@ public class GroupServer extends UnicastRemoteObject implements GroupServerInter
         lock = new ReentrantLock();
     }
     
+    
     public static void main(String[] args) throws RemoteException {
-
         try
         {
             System.out.println("****************************************");
@@ -41,16 +41,18 @@ public class GroupServer extends UnicastRemoteObject implements GroupServerInter
             System.out.println("\n\n");
             
             GroupServer obj = new GroupServer();
-            System.setProperty("java.security.policy", "C:\\Users\\Fran\\Desktop\\CentralizedGroups\\server.policy.txt");
-            if (System.getSecurityManager() == null)
+            System.setProperty("java.security.policy", centralizedgroups.Constants.CLIENT_POLICY);
+            if (System.getSecurityManager() == null){
                 System.setSecurityManager(new SecurityManager());
+            }
             LocateRegistry.createRegistry(1099);            
             Naming.rebind("//localhost:1099/GroupServer", obj);
-            System.out.println("GroupServer is Ready");
+            System.out.println("El servidor GroupServer está listo.");
         } 
         catch (MalformedURLException ex)
         {
-            System.out.println("Error creating the GroupServer registry");
+            System.out.println("Error creando el servidor de grupos GroupServer.");
+            System.out.println(ex);
         }
     }
 
@@ -60,23 +62,27 @@ public class GroupServer extends UnicastRemoteObject implements GroupServerInter
     {
         if (findGroup(galias) == -1)
         {
-            ObjectGroup group = new ObjectGroup(groupID,galias,oalias,ohostname);
-            groupID++;
-            groupList.add(group);
+            ObjectGroup group = new ObjectGroup(this.groupId++, galias, oalias, ohostname);
+            this.groupList.add(group);
             return group.idGroup;
         }
         else
+            System.out.println("El grupo ya existe");
             return -1;
     }
 
     @Override
     public int findGroup(String galias) throws RemoteException
     {
-        for (ObjectGroup group : groupList)
-        {
-            if (group.aliasGroup.equals(galias))
-                return group.idGroup;
+        if(!this.groupList.isEmpty()){
+            for (ObjectGroup group : this.groupList){
+                if (group.aliasGroup.equals(galias)){
+                    System.out.println("Ya existe un grupo llamado " + galias);
+                    return group.idGroup;
+                }
+            }
         }
+        System.out.println("El grupo no existe todavía en el servidor.");
         return -1;
     }
     
@@ -84,22 +90,24 @@ public class GroupServer extends UnicastRemoteObject implements GroupServerInter
     @Override
     public String findGroup(int gid)
     {
-        for (ObjectGroup group : groupList)
-        {
-            if (group.idGroup == gid) 
-            {
-                return group.aliasGroup;
+        if(!this.groupList.isEmpty()){
+            for (ObjectGroup group : this.groupList){
+                if (group.idGroup == gid){
+                    System.out.println("Ya existe un grupo llamado " + gid);
+                    return group.aliasGroup;
+                }
             }
         }
+        System.out.println("El grupo no existe todavía en el servidor.");
         return null;
     }
 
-
+    // Función auxiliar de ayuda para obtener la posición de un grupo dentro de la lista de grupos.
     public int getPosition(int gid)
     {
-        for(int i = 0; i < groupList.size(); i++)
+        for(int i = 0; i < this.groupList.size(); i++)
         {
-            if (groupList.get(i).idGroup == gid)
+            if (this.groupList.get(i).idGroup == gid)
                 return i;
         }
         return -1;
@@ -114,11 +122,12 @@ public class GroupServer extends UnicastRemoteObject implements GroupServerInter
             int gID = findGroup(galias);
             int pos = getPosition(gID);
             lock.lock();
-            if (gID != -1 && groupList.get(pos).groupOwner.alias == oalias)
-            {
-                groupList.remove(pos);
+            if (gID != -1 && this.groupList.get(pos).groupOwner.alias.equals(oalias)){
+                this.groupList.remove(pos);
+                System.out.println("Usuario borrado con exito.");
                 return true;
             }
+            System.out.println("No ha sido posible borrar el usuario " + oalias + " del grupo " + galias);
             return false;
         } 
         finally 
@@ -134,31 +143,48 @@ public class GroupServer extends UnicastRemoteObject implements GroupServerInter
         try
         {
             int gID = findGroup(galias);            
-            lock.lock();
-            GroupMember temp = isMember(galias,alias);
+            this.lock.lock();
             if (gID != -1 && isMember(galias,alias) == null)
             {
-                GroupMember newMember = groupList.get(gID).addMember(alias, hostname);
+                GroupMember newMember = this.groupList.get(gID).addMember(alias, hostname);
                 return newMember;
             }
             return null;
         }
         finally
         {
-            lock.unlock();
+            this.lock.unlock();
         }
     }
 
+        
+    @Override
+    public boolean removeMember(String galias, String alias) throws RemoteException 
+    {
+        if(!this.groupList.isEmpty()){
+            for (ObjectGroup group : this.groupList)
+            {   
+                if (group.aliasGroup.equals(galias))
+                {
+                    return this.groupList.get(group.idGroup).removeMember(alias);
+                }
+            }
+        }
+        return false;
+    }
+    
+    
     @Override
     public GroupMember isMember(String galias, String alias) throws RemoteException
     {
         int gID = findGroup(galias);
         if (gID != -1)
-            return groupList.get(gID).isMember(alias);
+            return this.groupList.get(gID).isMember(alias);
         else
             return null;
     }
 
+    
     @Override
     public boolean StopMembers(String galias) throws RemoteException
     {
@@ -167,8 +193,8 @@ public class GroupServer extends UnicastRemoteObject implements GroupServerInter
             int gID = findGroup(galias);
             if (gID != -1)
             {
-                lock.lock();
-                groupList.get(gID).StopMembers();
+                this.lock.lock();
+                this.groupList.get(gID).StopMembers();
                 return true;
             }
             else
@@ -176,83 +202,59 @@ public class GroupServer extends UnicastRemoteObject implements GroupServerInter
         } 
         finally
         {
-            lock.unlock();
+            this.lock.unlock();
         }
     }
 
+    
     @Override
     public boolean AllowMembers(int gid) throws RemoteException
     {
-        try 
-        {
+        try{
             String galias = findGroup(gid);
             int gID = findGroup(galias);  
             
-            if (gID != -1)
-            {
-                lock.lock();
-                groupList.get(gID).AllowMembers();
+            if (gID != -1){
+                this.lock.lock();
+                this.groupList.get(gID).AllowMembers();
                 return true;
             }
             else
                 return false;
         } 
-        finally
-        {
-            lock.unlock();
+        finally{
+            this.lock.unlock();
         }
     }   
     
+    
     @Override
-    public LinkedList<ObjectGroup> showGroups() throws RemoteException
+    public LinkedList<ObjectGroup> ListGroups() throws RemoteException
     {
-        return groupList;
+        return this.groupList;
     }
 
+    
     @Override
-    public boolean removeMember(String galias, String alias) throws RemoteException 
+    public LinkedList<String> ListMembers(String galias) throws RemoteException
     {
-        for (ObjectGroup group : groupList)
-        {   
-            if (group.aliasGroup == galias)
+        LinkedList<String> list = new LinkedList<String>();
+        if(!this.groupList.isEmpty()){
+            for(ObjectGroup group : this.groupList)
             {
-                if (groupList.get(group.idGroup).removeMember(alias))
-                    return true;
-                else
-                    return false;
-            }
-        }
-        return false;
-    }
-
-    @Override
-    public String showMembers() throws RemoteException
-    {
-        String list = "";
-        for (ObjectGroup group: groupList)
-        {
-            list += "Group " + group.idGroup + " - " + group.aliasGroup + "\n";
-            for (GroupMember member: group.groupMembers)
-            {
-                list += "\t";
-                if(member.alias != null && group.groupOwner.alias != null){
-                if (member.alias.equals(group.groupOwner.alias)){
-                    list += "(Owner) ";
-                }
-                list += member.alias + "\n ";
+                list.add("Group " + group.idGroup + " - " + group.aliasGroup + "\n");
+                for(GroupMember member : group.groupMembers)
+                {
+                    list.add("\t");
+                    if(member.alias != null && group.groupOwner.alias != null){
+                        if(member.alias.equals(group.groupOwner.alias)){
+                            list.add("(Owner) ");
+                        }
+                    list.add(member.alias + "\n ");
+                    }
                 }
             }
         }
-        return list;
-    }
-
-    @Override
-    public LinkedList<String> ListMembers(String galias) throws RemoteException {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    @Override
-    public LinkedList<String> ListGroup() throws RemoteException {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    return list;
     }
 }
