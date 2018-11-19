@@ -5,11 +5,13 @@
  */
 package centralizedgroups;
 
+import java.io.Serializable;
+
 /**
  *
  * @author Julián Morales, Francisco Martínez
  */
-public class GroupMember implements java.io.Serializable {
+public class GroupMember implements Serializable {
 
     String alias;
     String hostname;

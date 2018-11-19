@@ -7,7 +7,6 @@
 package centralizedgroups;
 
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
@@ -25,15 +24,19 @@ public class Client extends UnicastRemoteObject
     {
         try 
         {
-            System.out.println("**************");
-            System.out.println("*** CENTRALIZED GROUPS *****");
-            System.out.println("***** CLIENT *******");
-            System.out.println("**************");
+            System.out.print("****** ");
+            System.out.print("Cliente");
+            System.out.print(" ******");
             System.out.println("\n\n");
             
             System.out.print("Introduce la IP del servidor: ");
             Scanner scanner = new Scanner(System.in);
             String ip = scanner.next();
+            
+            // Practica 4
+            //Registry registry = LocateRegistry.getRegistry("localhost", 1099);
+            //GroupServerInterface stub = (GroupServerInterface) registry.lookup("GroupServer");
+            
             GroupServerInterface stub = (GroupServerInterface) Naming.lookup("rmi://"+ip+":1099/GroupServer");
             System.setProperty("java.security.policy", centralizedgroups.Constants.CLIENT_POLICY);
             if (System.getSecurityManager() == null){
@@ -182,7 +185,6 @@ public class Client extends UnicastRemoteObject
                             {
                                 System.out.println(member);
                             }
-                            System.out.println("\n");
                         }else{
                             System.out.println("No existen miembros en el grupo " + galias);
                         }
@@ -199,7 +201,7 @@ public class Client extends UnicastRemoteObject
                 }
             }
         } 
-        catch (RemoteException | NotBoundException | MalformedURLException e)
+        catch (RemoteException | NotBoundException e)
         {
             System.out.println("Se ha producido una excepción en el cliente.");
             System.err.println("Client exception: " + e.toString());

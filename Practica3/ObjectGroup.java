@@ -46,14 +46,19 @@ public class ObjectGroup extends ReentrantLock {
     
     public GroupMember isMember(String memberAlias)
     {
-        if(!this.groupMembers.isEmpty()){
-            for (GroupMember member : this.groupMembers) 
-            {
-                if(member.alias.equals(memberAlias))
-                    return member;
+        try{
+            this.lock.lock(); 
+            if(!this.groupMembers.isEmpty()){
+                for (GroupMember member : this.groupMembers) 
+                {
+                    if(member.alias.equals(memberAlias))
+                        return member;
+                }
             }
+            return null;
+        }finally { 
+            this.lock.unlock();
         }
-        return null;
     }
     
     
@@ -61,16 +66,6 @@ public class ObjectGroup extends ReentrantLock {
     {
         if (this.membersAllowed){
             try{
-                if (this.lock.isLocked()){
-                    try {
-                        this.condition.await();
-                    }
-                    catch (InterruptedException ex) {
-                        System.out.println("El método addMember() fue interrumpido mientras esperaba una condición.");
-                        System.out.println("El miembro " + memberAlias + " no pudo ser introducido en el grupo " + aliasGroup);
-                        System.out.println(ex);
-                    }
-                }
                 this.lock.lock(); 
                 
                 if(!this.groupMembers.isEmpty()){
@@ -85,12 +80,7 @@ public class ObjectGroup extends ReentrantLock {
                 GroupMember newMember = new GroupMember(memberAlias, memberHostname, this.idMember++, this.idGroup);
                 this.groupMembers.add(newMember);
                 return newMember;
-            }
-            finally
-            { 
-                if (this.lock.hasWaiters(this.condition)) {
-                    this.condition.signal();
-                }
+            }finally { 
                 this.lock.unlock();
             }
         }
@@ -105,16 +95,6 @@ public class ObjectGroup extends ReentrantLock {
     {
         if (this.membersAllowed){
             try{
-                if (this.lock.isLocked()){
-                    try{
-                        this.condition.await();
-                    }
-                    catch (InterruptedException ex){
-                        System.out.println("El método removeMember() fue interrumpido mientras esperaba una condición.");
-                        System.out.println("El miembro " + memberAlias + " no pudo ser eliminado del grupo " + aliasGroup);
-                        System.out.println(ex);
-                    }
-                }
                 this.lock.lock();
                 
                 if(this.groupOwner.alias != null){
@@ -138,12 +118,7 @@ public class ObjectGroup extends ReentrantLock {
                 }
                 System.out.println("No se puede eliminar el miembro porque este grupo no tiene propietario.");
                 return false;
-            }
-            finally
-            { 
-                if (this.lock.hasWaiters(condition)) {
-                    this.condition.signal();
-                }
+            }finally { 
                 this.lock.unlock();
             }
         }
@@ -157,21 +132,9 @@ public class ObjectGroup extends ReentrantLock {
     public void AllowMembers()
     {
         try{
-            if (this.lock.isLocked()){
-                try{
-                    this.condition.await();
-                } 
-                catch (InterruptedException ex) 
-                {
-                    System.out.println("El método AllowMembers() fue interrumpido mientras esperaba una condición.");
-                    System.out.println(ex);
-                }
-            }
             this.lock.lock();
             this.membersAllowed = true;
-        } 
-        finally{
-            this.condition.signal();
+        }finally{
             this.lock.unlock();
         }
     }
@@ -180,20 +143,9 @@ public class ObjectGroup extends ReentrantLock {
     public void StopMembers()
     {
         try{
-            if (this.lock.isLocked()){
-                try{
-                    this.condition.await();
-                } 
-                catch (InterruptedException ex){
-                    System.out.println("El método AllowMembers() fue interrumpido mientras esperaba una condición.");
-                    System.out.println(ex);
-                }
-            }
             this.lock.lock();
             this.membersAllowed = false;
-        } 
-        finally{
-            this.condition.signal();
+        }finally{
             this.lock.unlock();
         }
     }
@@ -203,15 +155,20 @@ public class ObjectGroup extends ReentrantLock {
         
         LinkedList<String> membersList = new LinkedList<>();
         
-        if(!this.groupMembers.isEmpty()){
-            for(GroupMember member: this.groupMembers) 
-            {
-                  membersList.add(member.alias);
+        try{
+            this.lock.lock();
+        
+            if(!this.groupMembers.isEmpty()){
+                for(GroupMember member: this.groupMembers) 
+                {
+                      membersList.add(member.alias);
+                }
             }
+            return membersList;
+        }finally{
+            this.lock.unlock();
         }
         
-        return membersList;
-      
     }
 }
     

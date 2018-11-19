@@ -11,7 +11,7 @@ package centralizedgroups;
  */
 public class Constants {
    
-    final public static String SERVER_POLICY = "C:\\Users\\Fran\\Desktop\\CentralizedGroups\\server.policy.txt";
-    final public static String CLIENT_POLICY = "C:\\Users\\Fran\\Desktop\\CentralizedGroups\\client.policy.txt";
+    final public static String SERVER_POLICY = "C:\\Users\\Fran\\Desktop\\CentralizedGroups\\server.policy";
+    final public static String CLIENT_POLICY = "C:\\Users\\Fran\\Desktop\\CentralizedGroups\\client.policy";
     
 }
